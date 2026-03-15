@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+local.properties
+proguard-gradle-repackage.txt
+
+# Android
+app/src/main/assets/web/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Node
+web/node_modules/
+web/dist/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/atak/bridge.ts","./src/atak/events.ts","./src/atak/hooks.ts","./src/atak/index.ts","./src/atak/mock.ts","./src/atak/types.ts","./src/components/LocationDisplay.tsx","./src/components/MarkerList.tsx"],"version":"5.8.3"}
