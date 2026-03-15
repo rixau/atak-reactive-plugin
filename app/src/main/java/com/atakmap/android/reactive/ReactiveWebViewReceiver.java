@@ -3,9 +3,11 @@ package com.atakmap.android.reactive;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.os.Build;
+import android.net.http.SslError;
 import android.webkit.ConsoleMessage;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -103,8 +105,15 @@ public class ReactiveWebViewReceiver extends DropDownReceiver
             showDropDown(container, HALF_WIDTH, FULL_HEIGHT,
                     FULL_WIDTH, HALF_HEIGHT, false, this);
 
-            String url = BuildConfig.DEV_MODE ? DEV_URL : PROD_URL;
-            webView.loadUrl(url);
+            if (BuildConfig.DEV_MODE) {
+                // Try dev server first; WebViewClient will fall back to
+                // bundled assets if localhost is unreachable
+                Log.d(TAG, "Dev mode: trying " + DEV_URL
+                        + " (fallback: bundled assets)");
+                webView.loadUrl(DEV_URL);
+            } else {
+                webView.loadUrl(PROD_URL);
+            }
 
             if (eventEmitter != null) {
                 eventEmitter.startListening();
@@ -159,11 +168,13 @@ public class ReactiveWebViewReceiver extends DropDownReceiver
     }
 
     private class ReactiveWebViewClient extends WebViewClient {
+        private boolean devFallbackTriggered = false;
+
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view,
                 WebResourceRequest request) {
-            // In production mode, intercept requests to serve from assets
-            if (!BuildConfig.DEV_MODE && assetLoader != null) {
+            // Serve from bundled assets when not using the dev server
+            if (assetLoader != null) {
                 WebResourceResponse response = assetLoader
                         .shouldInterceptRequest(request.getUrl());
                 if (response != null) {
@@ -171,6 +182,21 @@ public class ReactiveWebViewReceiver extends DropDownReceiver
                 }
             }
             return super.shouldInterceptRequest(view, request);
+        }
+
+        @Override
+        public void onReceivedError(WebView view, WebResourceRequest request,
+                WebResourceError error) {
+            // In dev mode, if localhost fails, fall back to bundled assets
+            if (BuildConfig.DEV_MODE && !devFallbackTriggered
+                    && request.isForMainFrame()) {
+                devFallbackTriggered = true;
+                Log.w(TAG, "Dev server unreachable, falling back to "
+                        + "bundled assets");
+                view.loadUrl(PROD_URL);
+                return;
+            }
+            super.onReceivedError(view, request, error);
         }
 
         @Override
@@ -182,6 +208,10 @@ public class ReactiveWebViewReceiver extends DropDownReceiver
         @Override
         public void onPageFinished(WebView view, String url) {
             Log.d(TAG, "Loaded: " + url);
+            // Reset fallback flag so reopening the dropdown retries dev server
+            if (url.equals(PROD_URL) || url.startsWith(DEV_URL)) {
+                devFallbackTriggered = false;
+            }
             super.onPageFinished(view, url);
         }
     }

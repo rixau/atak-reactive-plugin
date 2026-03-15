@@ -23,9 +23,11 @@ Dev Machine                          Android Device
                                     └──────────────────────┘
 ```
 
-- **Dev mode**: WebView loads from `http://localhost:5173` via ADB port forwarding. Vite HMR gives you instant UI updates.
-- **Prod mode**: Web assets are bundled into the APK and served via `WebViewAssetLoader`. No dev server needed.
+- **Dev mode**: WebView tries `http://localhost:5173` (Vite dev server via ADB port forwarding) for instant HMR. If the dev server isn't running, it automatically falls back to bundled assets.
+- **Prod mode**: Web assets are bundled into the APK and served via `WebViewAssetLoader`. No dev server, no network dependency.
 - **JS Bridge**: A typed `@JavascriptInterface` bridge connects React to ATAK — markers, map events, GPS, preferences.
+
+Web assets are bundled into **every** build (debug and release), so the plugin always works standalone. The dev server is purely optional for faster iteration.
 
 ## Quick Start
 
@@ -88,10 +90,18 @@ For changes to the Java bridge or plugin logic:
 
 This uses an experimental mechanism that unloads and reloads the plugin via `AtakPluginRegistry`. If the plugin behaves unexpectedly after a reload, use `install.sh` for a clean ATAK restart.
 
-### Full Build
+### Release Build
 
 ```bash
-# Build web assets + Android APK
+# Build a release APK (bundled web assets, ProGuard, no dev features)
+./scripts/build.sh --release
+./scripts/install.sh --release
+```
+
+### Debug Build (Standalone)
+
+```bash
+# Debug APK with bundled assets — works without dev server
 ./scripts/build.sh
 ```
 

@@ -4,12 +4,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "==> Building plugin..."
-"$SCRIPT_DIR/build.sh"
+BUILD_TYPE="debug"
+APK_PATTERN="*CivDebug*.apk"
 
-APK=$(find "$ROOT_DIR/app/build" -name "*CivDebug*.apk" -type f | head -1)
+if [[ "${1:-}" == "--release" ]]; then
+    BUILD_TYPE="release"
+    APK_PATTERN="*CivRelease*.apk"
+fi
+
+echo "==> Building plugin ($BUILD_TYPE)..."
+"$SCRIPT_DIR/build.sh" ${1:-}
+
+APK=$(find "$ROOT_DIR/app/build" -name "$APK_PATTERN" -type f | head -1)
 if [ -z "$APK" ]; then
-    echo "ERROR: No debug APK found"
+    echo "ERROR: No $BUILD_TYPE APK found"
     exit 1
 fi
 

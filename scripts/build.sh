@@ -4,27 +4,32 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "==> Building web assets..."
-cd "$ROOT_DIR/web"
+BUILD_TYPE="debug"
+GRADLE_TASK="assembleCivDebug"
+APK_PATTERN="*CivDebug*.apk"
 
+if [[ "${1:-}" == "--release" ]]; then
+    BUILD_TYPE="release"
+    GRADLE_TASK="assembleCivRelease"
+    APK_PATTERN="*CivRelease*.apk"
+fi
+
+echo "==> Building ($BUILD_TYPE)..."
+
+# Ensure web dependencies are installed (gradle buildWeb task needs them)
+cd "$ROOT_DIR/web"
 if [ ! -d "node_modules" ]; then
     echo "==> Installing npm dependencies..."
     npm install
 fi
 
-npm run build
-
-echo "==> Copying web assets to plugin..."
-mkdir -p "$ROOT_DIR/app/src/main/assets/web"
-cp -r dist/* "$ROOT_DIR/app/src/main/assets/web/"
-
-echo "==> Building Android plugin..."
+# Gradle handles: npm build → copy assets → compile Android
 cd "$ROOT_DIR"
-./gradlew assembleCivDebug
+./gradlew "$GRADLE_TASK"
 
-APK=$(find app/build -name "*CivDebug*.apk" -type f | head -1)
+APK=$(find app/build -name "$APK_PATTERN" -type f | head -1)
 if [ -n "$APK" ]; then
     echo "==> Build complete: $APK"
 else
-    echo "==> Build complete (APK path not found, check app/build/outputs/)"
+    echo "==> Build complete (check app/build/outputs/)"
 fi

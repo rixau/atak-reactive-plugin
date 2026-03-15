@@ -210,6 +210,8 @@ afterEvaluate {
 }
 
 // Copy web build output into assets before the Android build
+// Assets are bundled for ALL build types so the plugin always works standalone.
+// In debug mode, the WebView tries localhost first and falls back to bundled assets.
 task buildWeb(type: Exec) {
     workingDir "${rootDir}/web"
     commandLine 'npm', 'run', 'build'
@@ -220,9 +222,8 @@ task copyWebAssets(type: Copy, dependsOn: buildWeb) {
     into "${projectDir}/src/main/assets/web"
 }
 
-// Only copy web assets for release builds (debug uses dev server)
 tasks.whenTaskAdded { task ->
-    if (task.name.contains('Release') && task.name.contains('mergeAssets')) {
+    if (task.name.contains('mergeAssets') && !task.name.contains('Test')) {
         task.dependsOn copyWebAssets
     }
 }
